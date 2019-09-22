@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        span,
+        p {
+            color: #fff;
+            font-size: 25px;
+        }
+
+        .background {
+            width: 320px;
+            margin: 0 auto;
+            margin-top: 200px;
+            background-color: #333;
+            border-radius: 8px;
+        }
+
+        .wrap {
+            padding: 20px;
+        }
+
+        .empty {
+            padding: 30px 10px 10px;
+            text-align: center;
+        }
+
+        .empty span {
+            display: inline-block;
+            padding: 5px 20px;
+            background-color: rgb(26, 172, 152);
+            border-radius: 0.5em;
+            cursor: pointer;
+        }
+
+        .content {
+            text-align: right;
+        }
+
+        .content p {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .result {
+            display: flex;
+            flex-direction: row-reverse;
+        }
+
+        .formula p {
+            font-size: 18px;
+            color: #bbb;
+            height: 25px;
+        }
+
+        .result p,
+        .result span {
+            font-size: 30px;
+            height: 40px;
+        }
+
+        .btn-wrap {
+            display: flex;
+            margin-top: 10px;
+            font-size: 0;
+        }
+
+        .btn-wrap .btn {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            margin: 10px;
+            background-color: #555;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 50px;
+            cursor: pointer;
+        }
+
+        .btn-wrap .btn span {
+            color: #eee;
+        }
+
+        .btn-wrap .num-btn {
+            background-color: rgb(99, 168, 53);
+        }
+
+        .btn-wrap .other-btn {
+            background-color: rgb(236, 77, 48);
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="background">
+        <div class="wrap" id="wrap" v-cloak>
+            <div class="content formula">
+                <p>{{numOne}}{{operator}}{{numTwo}}</p>
+            </div>
+            <div class="content result">
+                <span>&nbsp;=</span>
+                <p>{{result}}</p>
+            </div>
+            <div class="btn-wrap">
+                <div class="left-div">
+                    <div v-for="content of numBtn" @click="getNum($event)" class="btn"><span>{{content}}</span></div>
+                    <div class="btn other-btn" v-on:click="compute"><span>{{otherBtn}}</span></div>
+                </div>
+                <div class="right-div">
+                    <div class="btn num-btn" v-for="content of operatorBtn" v-on:click="getOperator($event)">
+                        <span>{{content}}</span></div>
+                </div>
+            </div>
+            <div class="empty"><span v-on:click="empty2">再算一次</span></div>
+        </div>
+    </div>
+    <script src="vue.js"></script>
+    <script>
+        (() => {
+            function empty() { };
+            empty.prototype.empty = function () {
+                content.numOne = "";
+                content.numTwo = "";
+                content.operator = "";
+                content.result = "";
+                content.index = 1;
+            }
+            var emptyBtn = new empty();
+
+            var content = new Vue({
+                el: "#wrap",
+                data: {
+                    index: 1,
+                    result: "",
+                    numBtn: [7, 8, 9, 4, 5, 6, 1, 2, 3, 0, "."],
+                    operatorBtn: ["+", "-", "×", "÷"],
+                    otherBtn: "=",
+                    numOne: "",
+                    numTwo: "",
+                    operator: "",
+                },
+                methods: {
+                    //得到要计算的数字
+                    getNum: function (ele) {
+                        if (this.result === "") {
+                            if (this.index === 1) {
+                                this.numOne += ele.target.innerText;
+                            }
+                            else {
+                                this.numTwo += ele.target.innerText;
+                            }
+                        }
+                    },
+                    //得到运算符
+                    getOperator: function (ele) {
+                        if (this.operator === "") {
+                            this.operator = ele.target.innerText;
+                            this.index++;
+                        }
+                    },
+                    //得到 . 的长度,用于判断用户输入时是否多输了 .
+                    getDotLength: function(num){
+                        return num.split(".").length - 1;
+                    },
+                    //判断输入的计算公式是否有错
+                    compute: function () {
+                        if (this.numOne === "" || this.numTwo === "") {
+                            return;
+                        }
+                        let numOneDotLength = this.$options.methods.getDotLength(this.numOne);
+                        let numTwoDotLength = this.$options.methods.getDotLength(this.numTwo);
+                        //判断用户是否多输了.
+                        if(numOneDotLength > 1 || numTwoDotLength > 1){
+                            this.result = "运算出错~";
+                            return;
+                        }
+                        this.result = this.$options.methods.toCompute(this.operator, this.numOne, this.numTwo);
+                    },
+                    //进行计算
+                    toCompute: function(operator, num1, num2) {
+                        /**
+                        *   自定义保留多少位小数
+                        *   dotNum = 保留小数点后几位
+                        */
+                        // num1 = Math.floor([num1] * dotNum) / dotNum;
+                        // num2 = Math.floor([num2] * dotNum) / dotNum;
+                        num1 = Number([num1]);
+                        num2 = Number([num2]);
+                        switch (operator) {
+                            case "+":
+                                return (num1 + num2);
+                            case "-":
+                                return (num1 - num2);
+                            case "×":
+                                return (num1 * num2).toFixed(4);
+                            case "÷":
+                                if (num2 === 0) {
+                                    return "分母不能为0";
+                                }
+                                return (num1 / num2).toFixed(4);
+                        }
+                    },
+                    empty: function () {
+                        this.numOne = "";
+                        this.numTwo = "";
+                        this.operator = "";
+                        this.result = "";
+                        this.index = 1;
+                    },
+                    empty2: function () {
+                        emptyBtn.empty();
+                    }
+                }
+            });
+        })()
+        // compute: function (ele) {
+        //     if (ele.target.innerText !== "=") {
+        //         if (this.result === "") {
+        //             var regChar = /[\+\-\÷\*]/;
+        //             if (!regChar.test(this.content)) {
+        //                 this.content += ele.target.innerText;
+        //             }
+        //             else {
+        //                 if (!regChar.test(ele.target.innerText)) {
+        //                     this.content += ele.target.innerText;
+        //                 }
+        //             }
+        //         }
+        //     }
+        //     else {
+        //         //匹配除了运算符的数字与.
+        //         var reg = /(?!=.*[\+\-\/\*])[0-9\.]{1,}/g;
+        //         //匹配运算符
+        //         var regChar = /[\+\-\÷\*]/;
+        //         var regDot = /\./g;
+        //         var operator = this.content.match(regChar);
+        //         var numList = this.content.match(reg);
+        //         if (numList.length <= 1) {
+        //             //不符合运算
+        //             return 0;
+        //         }
+        //         for (var i in numList) {
+        //             if (numList[i].match(regDot) === null) {
+        //                 continue;
+        //             }
+        //             else if (numList[i].match(regDot).length > 1) {
+        //                 this.result = "运算出错~";
+        //                 return 0;
+        //             }
+        //         }
+        //         //进行运算
+        //         this.result = toCompute(operator[0], numList);
+        //     }
+        // },
+    </script>
+</body>
+
+</html>
