@@ -166,11 +166,11 @@
             <div class="empty"><span v-on:click="empty2">再算一次</span></div>
         </div>
         <div class="record" id="record" v-cloak>
-            <div class="wrap">
-                <div class="title text-right">
+            <div class="wrap text-right">
+                <div class="title">
                     <p>历史记录</p>
                 </div>
-                <div class="content result-record text-right">
+                <div class="content result-record">
                     <div class="record-content" v-for="content of recordContent" v-bind:key="content.result">
                         <div class="formula"><p>{{content.content}}<span>&nbsp;=</span></p></div>
                         <div><p>{{content.result}}</p></div>
