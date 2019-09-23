@@ -21,7 +21,9 @@
         }
 
         .background {
+            position: relative;
             width: 320px;
+            height: 480px;
             margin: 0 auto;
             margin-top: 200px;
             background-color: #333;
@@ -45,7 +47,7 @@
             cursor: pointer;
         }
 
-        .content {
+        .text-right {
             text-align: right;
         }
 
@@ -58,12 +60,6 @@
         .result {
             display: flex;
             flex-direction: row-reverse;
-        }
-
-        .formula p {
-            font-size: 18px;
-            color: #bbb;
-            height: 25px;
         }
 
         .result p,
@@ -90,7 +86,8 @@
             cursor: pointer;
         }
 
-        .btn-wrap .btn span {
+        .btn-wrap .btn span,
+        .record-content p {
             color: #eee;
         }
 
@@ -102,6 +99,43 @@
             background-color: rgb(236, 77, 48);
         }
 
+        .record {
+            position: absolute;
+            top: 0;
+            left: 100%;
+            border-radius: 8px;
+            width: 80%;
+            height: 100%;
+            background-color: #444;
+            overflow: auto;
+        }
+
+        .title {
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+            font-size: 32px;
+        }
+
+        .result-record {
+            margin-top: 30px;
+        }
+
+        .record-content {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: #555 2px solid;
+        }
+        
+        .record-content p {
+            font-size: 23px;
+        }
+
+        .formula p, 
+        .formula span{
+            font-size: 18px;
+            color: #bbb;
+        }
         [v-cloak] {
             display: none;
         }
@@ -111,24 +145,38 @@
 <body>
     <div class="background">
         <div class="wrap" id="wrap" v-cloak>
-            <div class="content formula">
-                <p>{{numOne}}{{operator}}{{numTwo}}</p>
+            <div class="content formula text-right">
+                <p>{{numOne}}&nbsp;{{operator}}&nbsp;{{numTwo}}</p>
             </div>
-            <div class="content result">
+            <div class="content result text-right">
                 <span>&nbsp;=</span>
                 <p>{{result}}</p>
             </div>
             <div class="btn-wrap">
                 <div class="left-div">
-                    <div v-for="content of numBtn" @click="getNum($event)" class="btn"><span>{{content}}</span></div>
+                    <!-- getNum($event): $event为原始的 DOM 事件,即点击的DOM事件 -->
+                    <div v-for="content of numBtn" @click="getNum(content)" class="btn"><span>{{content}}</span></div>
                     <div class="btn other-btn" v-on:click="compute"><span>{{otherBtn}}</span></div>
                 </div>
                 <div class="right-div">
-                    <div class="btn num-btn" v-for="content of operatorBtn" v-on:click="getOperator($event)">
+                    <div class="btn num-btn" v-for="content of operatorBtn" v-on:click="getOperator(content)">
                         <span>{{content}}</span></div>
                 </div>
             </div>
             <div class="empty"><span v-on:click="empty2">再算一次</span></div>
+        </div>
+        <div class="record" id="record" v-cloak>
+            <div class="wrap">
+                <div class="title text-right">
+                    <p>历史记录</p>
+                </div>
+                <div class="content result-record text-right">
+                    <div class="record-content" v-for="content of recordContent" v-bind:key="content.result">
+                        <div class="formula"><p>{{content.content}}<span>&nbsp;=</span></p></div>
+                        <div class=""><p>{{content.result}}</p></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     <script src="vue.js"></script>
@@ -158,43 +206,58 @@
                 },
                 methods: {
                     //得到要计算的数字
-                    getNum: function (ele) {
+                    getNum: function (num) {
+                        //结果不为空
                         if (this.result === "") {
+                            //给numOne赋值
                             if (this.index === 1) {
-                                this.numOne += ele.target.innerText;
+                                //如果输入的是小数点 ,判断数字的小数点是否满足数量
+                                if (num === "." && this.isExceedDotCount(this.numOne)) {
+                                    //超过设置的小数点数量,不执行下面代码
+                                    return 0;
+                                }
+                                this.numOne += num;
                             }
+                            //给numTwo赋值
                             else {
-                                this.numTwo += ele.target.innerText;
+                                //如果输入的是小数点 ,判断数字的小数点是否满足数量
+                                if (num === "." && this.isExceedDotCount(this.numTwo)) {
+                                    //超过设置的小数点数量,不执行下面代码
+                                    return 0;
+                                }
+                                this.numTwo += num;
                             }
                         }
                     },
                     //得到运算符
-                    getOperator: function (ele) {
+                    getOperator: function (operator) {
                         if (this.operator === "") {
-                            this.operator = ele.target.innerText;
+                            this.operator = operator;
                             this.index++;
                         }
                     },
                     //得到 . 的长度,用于判断用户输入时是否多输了 .
-                    getDotLength: function(num){
+                    getDotLength: function (num) {
                         return num.split(".").length - 1;
                     },
-                    //判断输入的计算公式是否有错
+                    //判断用户是否多输入了.
+                    isExceedDotCount: function (num) {
+                        if (this.getDotLength(num) >= 1) {
+                            return true;
+                        }
+                        return false;
+                    },
+                    //判断输入的计算公式是否有错并进行计算
                     compute: function () {
                         if (this.numOne === "" || this.numTwo === "") {
                             return;
                         }
-                        let numOneDotLength = this.$options.methods.getDotLength(this.numOne);
-                        let numTwoDotLength = this.$options.methods.getDotLength(this.numTwo);
-                        //判断用户是否多输了.
-                        if(numOneDotLength > 1 || numTwoDotLength > 1){
-                            this.result = "运算出错~";
-                            return;
-                        }
-                        this.result = this.$options.methods.toCompute(this.operator, this.numOne, this.numTwo);
+                        this.result = this.toCompute(this.operator, this.numOne, this.numTwo);
+                        historyRecord.setRecord(historyRecord.getRecord());
+                        console.log(historyRecord.recordContent);
                     },
                     //进行计算
-                    toCompute: function(operator, num1, num2) {
+                    toCompute: function (operator, num1, num2) {
                         num1 = Number([num1]);
                         num2 = Number([num2]);
                         switch (operator) {
@@ -220,6 +283,30 @@
                     },
                     empty2: function () {
                         emptyBtn.empty();
+                    }
+                }
+            });
+            //历史记录
+            var historyRecord = new Vue({
+                el: "#record",
+                data: {
+                    recordContent: []
+                },
+                methods: {
+                    getRecord: function () {
+                        return content.numOne + content.operator + content.numTwo + "=" + content.result;
+                    },
+                    setRecord: function (message) {
+                        let numList = message.split("=");
+                        let content = numList[0];
+                        let result = numList[1];
+                        this.recordContent.unshift({
+                            "content": content,
+                            "result": result
+                        });
+                    },
+                    getNowTime: function(){
+                        //TODO: 每一项历史记录都应在头部插入得到结果时的当前时间
                     }
                 }
             });
