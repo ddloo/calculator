@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        span,
+        p {
+            color: #fff;
+            font-size: 25px;
+        }
+
+        .background {
+            position: relative;
+            width: 320px;
+            height: 480px;
+            margin: 0 auto;
+            margin-top: 200px;
+            background-color: #333;
+            border-radius: 8px;
+        }
+
+        .wrap {
+            padding: 20px;
+        }
+
+        .empty {
+            padding: 30px 10px 10px;
+            text-align: center;
+        }
+
+        .empty span {
+            display: inline-block;
+            padding: 5px 20px;
+            background-color: rgb(26, 172, 152);
+            border-radius: 0.5em;
+            cursor: pointer;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .content p {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .result {
+            display: flex;
+            flex-direction: row-reverse;
+        }
+
+        .result p,
+        .result span {
+            font-size: 30px;
+            height: 40px;
+        }
+
+        .btn-wrap {
+            display: flex;
+            margin-top: 10px;
+            font-size: 0;
+        }
+
+        .btn-wrap .btn {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            margin: 10px;
+            background-color: #555;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 50px;
+            cursor: pointer;
+        }
+
+        .btn-wrap .btn:active {
+            animation: scale .5s linear;
+        }
+
+        @keyframes scale {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(0.5);
+            }
+        }
+
+        .btn-wrap .btn span,
+        .record-content p {
+            color: #eee;
+        }
+
+        .btn-wrap .num-btn {
+            background-color: rgb(99, 168, 53);
+        }
+
+        .btn-wrap .other-btn {
+            background-color: rgb(236, 77, 48);
+        }
+
+        .record {
+            position: absolute;
+            top: 0;
+            left: 100%;
+            border-radius: 8px;
+            width: 80%;
+            height: 100%;
+            background-color: #444;
+            overflow: auto;
+        }
+
+        .title {
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+            font-size: 32px;
+        }
+
+        .result-record {
+            margin-top: 30px;
+        }
+        
+        .record-content {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: #555 2px solid;
+            animation: enter .8s ease;
+        }
+        @keyframes enter{
+            from{
+                transform: translateY(-5px);
+                opacity: 0;
+            }
+            to{
+                opacity: 1;
+            }
+        }
+        .record-content p {
+            font-size: 23px;
+        }
+
+        .formula p,
+        .formula span {
+            font-size: 18px;
+            color: #bbb;
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="background">
+        <div class="wrap" id="wrap" v-cloak>
+            <div class="content formula text-right">
+                <p>{{content}}&nbsp;</p>
+            </div>
+            <div class="content result text-right">
+                <span>&nbsp;=</span>
+                <p>{{result}}</p>
+            </div>
+            <div class="btn-wrap">
+                <div class="left-div">
+                    <!-- getNum($event): $event为原始的 DOM 事件,即点击的DOM事件 -->
+                    <div v-for="content of numBtn" @click="getNum(content)" class="btn"><span>{{content}}</span></div>
+                    <div class="btn other-btn" v-on:click="compute"><span>{{otherBtn}}</span></div>
+                </div>
+                <div class="right-div">
+                    <div class="btn num-btn" v-for="content of operatorBtn" v-on:click="getOperator(content)">
+                        <span>{{content}}</span></div>
+                </div>
+            </div>
+            <div class="empty"><span v-on:click="empty2">再算一次</span></div>
+        </div>
+        <div class="record" id="record" v-cloak>
+            <div class="wrap text-right">
+                <div class="title">
+                    <p>历史记录</p>
+                </div>
+                <div class="content result-record">
+                    <div class="record-content" v-for="(content, index) of recordContent" v-bind:key="content.result">
+                        <div class="formula">
+                            <p>{{content.content}}<span>&nbsp;=</span></p>
+                        </div>
+                        <div>
+                            <p>{{content.result}}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="vue.js"></script>
+    <script>
+        (() => {
+            function empty() { };
+            empty.prototype.empty = function () {
+                content.numList.splice(0);
+                content.operatorList.splice(0);
+                content.operator = "";
+                content.result = "";
+                content.content = "";
+                content.num = "";
+            }
+            var emptyBtn = new empty();
+
+            var content = new Vue({
+                el: "#wrap",
+                data: {
+                    result: "",
+                    numBtn: [7, 8, 9, 4, 5, 6, 1, 2, 3, 0, "."],
+                    operatorBtn: ["+", "-", "×", "÷"],
+                    otherBtn: "=",
+                    numList: [],
+                    operatorList: [],
+                    num: "",
+                    content: ""
+                },
+                methods: {
+                    //得到要计算的数字
+                    getNum: function (num) {
+                        if (num === "." && this.isExceedDotCount(this.num)) {
+                            //超过设置的小数点数量,不执行下面代码
+                            return 0;
+                        }
+                        this.num += num;
+                        this.content += num;
+                    },
+                    //得到运算符
+                    getOperator: function (operator) {
+                        //运算符进栈
+                        this.operatorList.push(operator);
+                        var i = this.operatorList.length - 1;
+
+                        //两个数字间只能输入一个运算符
+                        if (this.pushNumList(this.num)) {
+                            //压numList栈成功
+                            this.num = "";
+                            this.content += operator;
+                        }
+                        else {
+                            //压栈失败
+                            this.operatorList.pop();
+                            return;
+                        }
+
+                        //如果输入数字后再输入运算符,则进行前面两个数字之间运算
+                        if (this.numList[i] !== undefined && i > 0) {
+                            this.numList[i] = this.toCompute(this.operatorList[i - 1], this.numList[i - 1], this.numList[i]);
+                            this.result = this.numList[i];
+                        }
+                    },
+                    //如果num不为空,则压入numList栈,返回值为布尔型
+                    pushNumList: function (num) {
+                        if (num !== "") {
+                            this.numList.push(num);
+                            return true;
+                        }
+                        return false;
+                    },
+                    //得到 . 的长度,用于判断用户输入时是否多输了 .
+                    getDotLength: function (num) {
+                        return num.split(".").length - 1;
+                    },
+                    //判断用户是否多输入了.
+                    isExceedDotCount: function (num) {
+                        if (this.getDotLength(num) >= 1) {
+                            return true;
+                        }
+                        return false;
+                    },
+                    //判断输入的计算公式是否有错并进行计算
+                    compute: function () {
+                        if(this.numList.length < 1){
+                            //没有数字可以进行运算
+                            return;
+                        }
+                        var i = this.operatorList.length - 1;
+                        if(!this.pushNumList(this.num)){
+                            //当用户输入最后一个字符是运算符时且点击了 “=”,则将numList数组最后一个元素与自身运算
+                            this.content += this.numList[i];
+                            this.numList[i] = this.toCompute(this.operatorList[i], this.numList[i], this.numList[i]);
+                            this.result = this.numList[i];
+                        }
+                        else{
+                            this.numList[i + 1] = this.toCompute(this.operatorList[i], this.numList[i], this.numList[i + 1]);
+                            this.result = this.numList[i + 1];
+                        }
+                        historyRecord.setRecord(historyRecord.getRecord());
+                        this.empty();
+                    },
+                    //进行计算
+                    toCompute: function (operator, num1, num2) {
+                        num1 = Number([num1]);
+                        num2 = Number([num2]);
+                        switch (operator) {
+                            case "+":
+                                return (num1 + num2);
+                            case "-":
+                                return (num1 - num2);
+                            case "×":
+                                return (num1 * num2).toFixed(4);
+                            case "÷":
+                                if (num2 === 0) {
+                                    return "分母不能为0";
+                                }
+                                return (num1 / num2).toFixed(4);
+                        }
+                    },
+                    empty: function () {
+                        this.numList.splice(0);
+                        this.operatorList.splice(0);
+                        this.operator = "";
+                        this.result = "";
+                        this.content = "";
+                        this.num = "";
+                    },
+                    empty2: function () {
+                        emptyBtn.empty();
+                    }
+                }
+            });
+            //历史记录
+            var historyRecord = new Vue({
+                el: "#record",
+                data: {
+                    recordContent: []
+                },
+                methods: {
+                    getRecord: function () {
+                        return content.content + "=" + content.result;
+                    },
+                    setRecord: function (message) {
+                        let numList = message.split("=");
+                        let content = numList[0];
+                        let result = numList[1];
+                        this.recordContent.unshift({
+                            "content": content,
+                            "result": result
+                        });
+                    },
+                }
+            });
+        })()
+    </script>
+</body>
+
+</html>
